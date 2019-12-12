@@ -5,7 +5,7 @@ L = 10
 ns1 = round.(Int,(10.0.^LinRange(log10.((1e2, 1e6))...,L)).^(1))
 ns2 = round.(Int,(10.0.^LinRange(log10.((1e2, 1e6))...,L)).^(1/2))
 ns3 = round.(Int,(10.0.^LinRange(log10.((1e2, 1e5))...,L)).^(1/3))
-    ns = [ns1,ns2,ns3]
+    nsds = [ns1,ns2,ns3]
 
 ds = 1:3
 
@@ -45,7 +45,7 @@ timingsAZ = zeros(length(fs), L,length(ds))
     include("fill_data.jl")
 
 # You can leave this computation out
-for (d,f) in zip(1:3,fs[1:3]), (i,n) in zip(1:10,ns[d][1:10]), (j,p) in enumerate(ds) #
+for (d,f) in zip(1:3,fs[1:3]), (i,n) in zip(1:10,nsds[d][1:10]), (j,p) in enumerate(ds[1:3]) #
     if d==1
         N = n
         Pbasis = BSplinePlatform(p)
@@ -57,24 +57,24 @@ for (d,f) in zip(1:3,fs[1:3]), (i,n) in zip(1:10,ns[d][1:10]), (j,p) in enumerat
     @show N, p
 
     if d ==1 ||
-            (d==2 &&((p==2 || p==3) && n^d <= 4e4) || ((p==1) &&n^d <= 4e4)) ||
-            (d==3 && (p==1 && n^d<=3e4) || (p==2 && n^d<=2e4) || (p==3 && n^d<=2e4))
+            (d==2 && (n <= 129)) ||
+            (d==3 && (p==1 && n<=28) || (p==2 && n<=22) || (p==3 && n<=22))
         F, timingsAZ[d,i,j], allocAZ[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=AZStyle(), REG=pQR_solver, verbose=false)
         errorsAZ[d,i,j] = residual(f, F)
         F, timingsAZ[d,i,j], allocAZ[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=AZStyle(), REG=pQR_solver)
 
-        @show timingsAZ
+        @show timingsAZ[d,:,:]
     end
     # @show errorsAZ
     # @show allocAZ
     if d==1 ||
-            (d==2 && n^d <= 5e4) ||
+            (d==2 && n <= 215) ||
             (d==3 && ((p==1 && (n<=36) || (p==2 && (n <= 28)) || (p==3 && (n <= 28)))))
         F, timingsAZR1[d,i,j], allocAZR1[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=ReducedAZStyle(), verbose=false)
         errorsAZR1[d,i,j] = residual(f, F)
         F, timingsAZR1[d,i,j], allocAZR1[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=ReducedAZStyle())
 
-        @show timingsAZR1
+        @show timingsAZR1[d,:,:]
     end
     # @show errorsAZR1
     # @show allocAZR1
@@ -87,14 +87,14 @@ for (d,f) in zip(1:3,fs[1:3]), (i,n) in zip(1:10,ns[d][1:10]), (j,p) in enumerat
     P = ExtensionFramePlatform(Pbasis, (0.0..0.5)^d)
 
     if d ==1 ||
-           (d==2 &&((p==2 || p==3) && n <= 28) || ((p==1) &&n^d <= 5e5)) ||
+           (d==2 &&((p==2 || p==3) && n <= 215) || ((p==1) &&n <= 359)) ||
            (d==3 &&((p==1 && n^d <=2e5) || (p==2 && n<=36) || (p==3 && n<=36)))
 
         F, timingsAZR2[d,i,j], allocAZR2[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=ReducedAZStyle(), verbose=false)
         errorsAZR2[d,i,j] = residual(f, F)
         F, timingsAZR2[d,i,j], allocAZR2[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=ReducedAZStyle())
 
-        @show timingsAZR2
+        @show timingsAZR2[d,:,:]
     end
     # @show errorsAZR2
     # @show allocAZR2
@@ -104,7 +104,7 @@ for (d,f) in zip(1:3,fs[1:3]), (i,n) in zip(1:10,ns[d][1:10]), (j,p) in enumerat
         errorsAZS[d,i,j] = residual(f, F)
         F, timingsAZS[d,i,j], allocAZS[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=SparseAZStyle(), REG=SPQR_solver)
 
-        @show timingsAZS
+        @show timingsAZS[d,:,:]
     end
     # @show errorsAZS
     # @show allocAZS
@@ -125,7 +125,7 @@ for (d,f) in zip(1:3,fs[1:3]), (i,n) in zip(1:10,ns[d][1:10]), (j,p) in enumerat
         errorsAZS2[d,i,j] = residual(f, F)
         F, timingsAZS2[d,i,j], allocAZS2[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=SparseAZStyle(), REG=SPQR_solver)
 
-        @show timingsAZS2
+        @show timingsAZS2[d,:,:]
     end
     # @show errorsAZS2
     # @show allocAZS2
@@ -135,35 +135,35 @@ for (d,f) in zip(1:3,fs[1:3]), (i,n) in zip(1:10,ns[d][1:10]), (j,p) in enumerat
     errorsAZS3[d,i,j] = residual(f, F)
     F, timingsAZS3[d,i,j], allocAZS3[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=DirectStyle(), directsolver=SPQR_solver)
 
-    @show timingsAZS3
+    @show timingsAZS3[d,:,:]
 
     # @show errorsAZS3
     # @show allocAZS3
 
 
-    F, timingsAZI[d,i,j], allocAZI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=AZStyle(), verbose=false, REG=LSQR_solver)
-    errorsAZI[d,i,j] = residual(f, F)
-    F, timingsAZI[d,i,j], allocAZI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=AZStyle(), REG=LSQR_solver)
-
-    @show timingsAZI
+    # F, timingsAZI[d,i,j], allocAZI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-3,solverstyle=AZStyle(), verbose=false, REG=LSQR_solver)
+    # errorsAZI[d,i,j] = residual(f, F)
+    # F, timingsAZI[d,i,j], allocAZI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-3,solverstyle=AZStyle(), REG=LSQR_solver)
+    #
+    # @show timingsAZI
 
     # @show errorsAZI
     # @show allocAZI
 
-    F, timingsAZSI[d,i,j], allocAZSI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=SparseAZStyle(), verbose=false, REG=LSQR_solver)
+    F, timingsAZSI[d,i,j], allocAZSI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-3,solverstyle=SparseAZStyle(), verbose=false, REG=LSQR_solver)
     errorsAZSI[d,i,j] = residual(f, F)
-    F, timingsAZSI[d,i,j], allocAZSI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,solverstyle=SparseAZStyle(), REG=LSQR_solver)
+    F, timingsAZSI[d,i,j], allocAZSI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-3,solverstyle=SparseAZStyle(), REG=LSQR_solver)
 
-    @show timingsAZSI
+    @show timingsAZSI[d,:,:]
 
     # @show errorsAZSI
     # @show allocAZSI
 
-    F, timingsI[d,i,j], allocI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,crop_tol=1e-12,solverstyle=DirectStyle(), verbose=false, directsolver=LSQR_solver)
+    F, timingsI[d,i,j], allocI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-3,solverstyle=DirectStyle(), verbose=false, directsolver=LSQR_solver)
     errorsI[d,i,j] = residual(f, F)
-    F, timingsI[d,i,j], allocI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-12,crop_tol=1e-12,solverstyle=DirectStyle(), directsolver=LSQR_solver)
+    F, timingsI[d,i,j], allocI[d,i,j], _ = @timed Fun(f, P, N;threshold=1e-3,solverstyle=DirectStyle(), directsolver=LSQR_solver)
 
-    @show timingsI
+    @show timingsI[d,:,:]
 
     # @show errorsI
     # @show allocI
